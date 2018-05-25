@@ -16,6 +16,7 @@ import json
 import pickle
 import matplotlib.image as mpimg
 import time
+import collections
 
 # Import functions for perception and decision making
 from perception import perception_step
@@ -29,7 +30,7 @@ app = Flask(__name__)
 # Read in ground truth map and create 3-channel green version for overplotting
 # NOTE: images are read in by default with the origin (0, 0) in the upper left
 # and y-axis increasing downward.
-ground_truth = mpimg.imread('../calibration_images/map_bw.png')
+ground_truth = mpimg.imread('calibration_images/map_bw.png')
 # This next line creates arrays of zeros in the red and blue channels
 # and puts the map into the green channel.  This is why the underlying 
 # map output looks green in the display image
@@ -51,6 +52,8 @@ class RoverState():
         self.brake = 0 # Current brake value
         self.nav_angles = None # Angles of navigable terrain pixels
         self.nav_dists = None # Distances of navigable terrain pixels
+        self.rock_nav_angles = None
+        self.rock_nav_dists = None
         self.ground_truth = ground_truth_3d # Ground truth worldmap
         self.mode = 'forward' # Current mode (can be forward or stop)
         self.throttle_set = 0.2 # Throttle setting when accelerating
@@ -77,7 +80,17 @@ class RoverState():
         self.near_sample = 0 # Will be set to telemetry value data["near_sample"]
         self.picking_up = 0 # Will be set to telemetry value data["picking_up"]
         self.send_pickup = False # Set to True to trigger rock pickup
-# Initialize our rover 
+        self.last_100_x_positions = collections.deque(maxlen=100)
+        self.last_100_y_positions = collections.deque(maxlen=100)
+        self.last_100_steer_positions = collections.deque([0], maxlen=100)
+        # If rover stuck or looping it will repeat last steering action decrementing counter until it is 0
+        self.steering_repeat_counter = 50
+        self.turning = False
+        self.looping = False # stuck in a loop
+        self.stuck = False
+        self.check_stuck_time = 5 # make first check after 5 sec
+        self.check_loop_time = 30 # make first check after 30 sec
+# Initialize our rover
 Rover = RoverState()
 
 # Variables to track frames per second (FPS)
