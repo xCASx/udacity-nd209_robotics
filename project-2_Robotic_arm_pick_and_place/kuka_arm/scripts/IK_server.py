@@ -150,12 +150,12 @@ def handle_calculate_IK(req):
             # Solving theta2 and theta3 using triangle with sides a, b, c
             wcxy_comp = sqrt(wcx**2 + wcy**2) - a12
             wcz_comp = wcz - d01
-            side_b_sq = wcxy_comp**2 + (wcz_comp)**2
+            side_b_sq = wcxy_comp**2 + wcz_comp**2
             side_b = sqrt(side_b_sq)
             side_b_dbl = side_b * 2
 
             angle_a = acos((side_b_sq + side_c_sq - side_a_sq) / (side_c * side_b_dbl))
-            angle_b = acos((side_a_sq + side_c_sq - side_b_sq) / (side_a_mul_side_c_dbl))
+            angle_b = acos((side_a_sq + side_c_sq - side_b_sq) / side_a_mul_side_c_dbl)
             angle_c = acos((side_b_sq + side_a_sq - side_c_sq) / (side_a * side_b_dbl))
 
             theta2 = half_pi - angle_a - atan2(wcz_comp, wcxy_comp)
