@@ -4,7 +4,11 @@
 ## Implementation write up
 ### Project description
 
-This project uses simulator of Anthropomorphic Manipulator (RRR). Here is a highlevel representation of such type of manipulator:
+This project uses simulator of Anthropomorphic Manipulator (RRR):
+
+![Project goal](./img/req-challenge.gif)
+
+Here is a highlevel representation of such type of manipulator:
 
 ![Anthropomorphic Manipulator (RRR)](./img/l01-05-l-properties-of-the-principal-manipulator-types-03.png)
 
@@ -126,11 +130,17 @@ Final values of *θ<sub>4</sub>*, *θ<sub>5</sub>* and *θ<sub>6</sub>* may be c
 - `θ5 = atan2(sqrt(R3_6[0, 2]**2 + R3_6[2, 2]**2), R3_6[1, 2])`
 - `θ6 = atan2(-R3_6[1,1],R3_6[1,0])`
 
+
 ### Project Implementation
 
 The result implementation shows quite decent performance. Most of time kuka arm able to transfer object from the shelf to the basket. From time to time gripper is not able to rigidly grasp object and it may fall down in the middle of movement. But this rarely happens and the issue is beyond the current project scope.
 
 As of further improvements, it's definitely worth to simplify calculations made in the code. Some simplifications were made in pursuit of performance, but this lead to convoluted code. The real impact of such "improvements" need to be evaluated by a standalone benchmark.
+
+
+## Demo
+
+[![Demo video of working project](http://img.youtube.com/vi/aoPuBb5uK7w/0.jpg)](http://www.youtube.com/watch?v=aoPuBb5uK7w "Forward/Inverse Kinematics project for Robotic Arm Kuka KR210")
 
 ## Prerequisites
 
