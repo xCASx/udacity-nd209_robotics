@@ -156,7 +156,7 @@ The last part would be either apply pick and place operation based on calculated
 
 Demonstration of dynamic object recognition (click to open youtube video):
 
-[![Demo video of working project](http://img.ttube.com/vi/biqNLDdZsEI/0.jpg)](https://www.youtube.com/watch?v=biqNLDdZsEI "3D Perception in Action")
+[![Demo video of working project](https://img.youtube.com/vi/biqNLDdZsEI/0.jpg)](https://www.youtube.com/watch?v=biqNLDdZsEI "3D Perception in Action")
 
 ## Project Setup
 For this setup, catkin_ws is the name of active ROS Workspace, if your workspace name is different, change the commands accordingly
