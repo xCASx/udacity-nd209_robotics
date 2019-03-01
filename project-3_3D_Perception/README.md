@@ -1,14 +1,164 @@
 [![Udacity - Robotics NanoDegree Program](https://s3-us-west-1.amazonaws.com/udacity-robotics/Extra+Images/RoboND_flag.png)](https://www.udacity.com/robotics)
 # 3D Perception
-Before starting any work on this project, please complete all steps for [Exercise 1, 2 and 3](https://github.com/udacity/RoboND-Perception-Exercises). At the end of Exercise-3 you have a pipeline that can identify points that belong to a specific object.
+## Write Up
+Logic for object recognition is in `pr2_robot/scripts/object_detector.py` file.
 
-In this project, you must assimilate your work from previous exercises to successfully complete a tabletop pick and place operation using PR2.
+### SVM Model
+[SVM model](https://en.wikipedia.org/wiki/Support-vector_machine) was trained based on bunch of point cloud results obtained for each particular object (50 random poses per objct).
 
-The PR2 has been outfitted with an RGB-D sensor much like the one you used in previous exercises. This sensor however is a bit noisy, much like real sensors.
+Confusion Matrix of trained model:
 
-Given the cluttered tabletop scenario, you must implement a perception pipeline using your work from Exercises 1,2 and 3 to identify target objects from a so-called “Pick-List” in that particular order, pick up those objects and place them in corresponding dropboxes.
+![Confusion Matrix](./img/confusion_matrix.jpg "Confusion Matrix")
 
-# Project Setup
+### ROS Node Setup
+First of all ROS node initialized, subscriber and publishers created, and trained SVM model loaded from the disk.
+
+The subscriber subscribes to `/pr2/world/points` topic, where point cloud data published and calls `pcl_callback` method for processing received data.
+
+### Voxel Grid Downsampling
+Apply [Voxel Grid Downsampling](http://pointclouds.org/documentation/tutorials/voxel_grid.php) to reduce amount of processable points.
+
+```python
+vox = pclMsg.make_voxel_grid_filter()
+LEAF_SIZE = 0.005
+vox.set_leaf_size(LEAF_SIZE, LEAF_SIZE, LEAF_SIZE)
+cloud_filtered = vox.filter()
+```
+
+### Noice Reduction
+Apply [StatisticalOutlierRemoval Filter](http://pointclouds.org/documentation/tutorials/statistical_outlier.php) to get rid of noise.
+
+```python
+outlier_filter = cloud_filtered.make_statistical_outlier_filter()
+outlier_filter.set_mean_k(3)
+x = 0.05
+outlier_filter.set_std_dev_mul_thresh(x)
+cloud_filtered = outlier_filter.filter()
+```
+
+### PassThrough Filter
+Apply [PassThrough Filter](http://pointclouds.org/documentation/tutorials/passthrough.php) to reduce operational space.
+
+```python
+passthrough = cloud_filtered.make_passthrough_filter()
+filter_axis = 'z'
+passthrough.set_filter_field_name(filter_axis)
+axis_min = 0.5
+axis_max = 0.8
+passthrough.set_filter_limits(axis_min, axis_max)
+cloud_filtered = passthrough.filter()
+```
+
+### Euclidean Clustering (DBSCAN)
+Apply Euclidean Clustering ([DBSCAN](https://en.wikipedia.org/wiki/DBSCAN)) algorithm to separate point clouds of different objects.
+
+```python
+white_cloud = XYZRGB_to_XYZ(pcl_cloud_objects)
+tree = white_cloud.make_kdtree()
+ec = white_cloud.make_EuclideanClusterExtraction()
+ec.set_ClusterTolerance(0.05)
+ec.set_MinClusterSize(50)
+ec.set_MaxClusterSize(10000)
+ec.set_SearchMethod(tree)
+cluster_indices = ec.Extract()
+```
+
+### RANSAC Plane Segmentation
+Apply [RANSAC](https://en.wikipedia.org/wiki/Random_sample_consensus) Plane Segmentation to separate table and object point clouds.
+
+```python
+seg = cloud_filtered.make_segmenter()
+seg.set_model_type(pcl.SACMODEL_PLANE)
+seg.set_method_type(pcl.SAC_RANSAC)
+max_distance = 0.01
+seg.set_distance_threshold(max_distance)
+inliers, coefficients = seg.segment()
+```
+
+### Cluster-Mask Point Cloud
+Create Cluster-Mask Point Cloud to visualize each cluster separately
+
+```python
+cluster_color = get_color_list(len(cluster_indices))
+color_cluster_point_list = []
+for j, indices in enumerate(cluster_indices):
+    for i, indice in enumerate(indices):
+        color_cluster_point_list.append([white_cloud[indice][0],
+                                         white_cloud[indice][1],
+                                         white_cloud[indice][2],
+                                         rgb_to_float(cluster_color[j])])
+cluster_cloud = pcl.PointCloud_PointXYZRGB()
+cluster_cloud.from_list(color_cluster_point_list)
+```
+
+### Object Classification
+For every point cloud obtained as a result of clustering operation, run prediction based on pre-trained SVM model to identify particular object.
+
+```python
+pcl_cluster = pcl_cloud_objects.extract(pts_list)
+ros_cluster = pcl_to_ros(pcl_cluster)
+
+chists = compute_color_histograms(ros_cluster, using_hsv=True)
+normals = get_normals(ros_cluster)
+nhists = compute_normal_histograms(normals)
+feature = np.concatenate((chists, nhists))
+
+prediction = clf.predict(scaler.transform(feature.reshape(1,-1)))
+label = encoder.inverse_transform(prediction)[0]
+detected_objects_labels.append(label)
+```
+
+### Pick and Place
+The list of the detected objects passed then to `pr2_mover` method, which determines next action based on pre-defined ordered list `pr2_robot/config/pick_list_*.yaml` which is configured in `pr2_robot/launch/pick_place_project.launch`
+
+```xml
+<rosparam command="load" file="$(find pr2_robot)/config/pick_list_3.yaml"/>
+```
+
+The corresponding world should be properly defined in the same file as well:
+
+```xml
+<arg name="world_name" value="$(find pr2_robot)/worlds/test3.world"/>
+```
+
+#### Calculate object centroid
+
+```python
+object_name.data = str(object.label)
+points_arr = ros_to_pcl(object.cloud).to_array()
+centroid = np.mean(points_arr, axis=0)[:3]
+```
+
+#### Assign the arm and define place pose
+
+```python
+object_idx = object_names.index(object.label)
+if object_groups[object_idx] == 'green':
+    arm_name.data = 'right'
+    position = dropbox_param[1]['position']
+else:
+    arm_name.data = 'left'
+    position = dropbox_param[0]['position']
+place_pose.position.x = position[0]
+place_pose.position.y = position[1]
+place_pose.position.z = position[2]
+```
+
+The last part would be either apply pick and place operation based on calculated data, or simply write intermediate results to output yaml files for algorithm evaluation.
+
+## Further improvements
+
+- model quality could be increased to gain 100% correctness of recognition
+- quality of pick and place actions may be improved by properly calculating collision point cloud by excluding target object from complete point cloud
+
+
+## Demo
+
+Demonstration of dynamic object recognition (click to open youtube video):
+
+[![Demo video of working project](http://img.ttube.com/vi/biqNLDdZsEI/0.jpg)](https://www.youtube.com/watch?v=biqNLDdZsEI "3D Perception in Action")
+
+## Project Setup
 For this setup, catkin_ws is the name of active ROS Workspace, if your workspace name is different, change the commands accordingly
 If you do not have an active ROS workspace, you can create one by:
 
@@ -81,25 +231,6 @@ You can launch the project scenario like this:
 ```sh
 $ roslaunch pr2_robot pick_place_project.launch
 ```
-# Required Steps for a Passing Submission:
-1. Extract features and train an SVM model on new objects (see `pick_list_*.yaml` in `/pr2_robot/config/` for the list of models you'll be trying to identify). 
-2. Write a ROS node and subscribe to `/pr2/world/points` topic. This topic contains noisy point cloud data that you must work with.
-3. Use filtering and RANSAC plane fitting to isolate the objects of interest from the rest of the scene.
-4. Apply Euclidean clustering to create separate clusters for individual items.
-5. Perform object recognition on these objects and assign them labels (markers in RViz).
-6. Calculate the centroid (average in x, y and z) of the set of points belonging to that each object.
-7. Create ROS messages containing the details of each object (name, pick_pose, etc.) and write these messages out to `.yaml` files, one for each of the 3 scenarios (`test1-3.world` in `/pr2_robot/worlds/`).  See the example `output.yaml` for details on what the output should look like.  
-8. Submit a link to your GitHub repo for the project or the Python code for your perception pipeline and your output `.yaml` files (3 `.yaml` files, one for each test world).  You must have correctly identified 100% of objects from `pick_list_1.yaml` for `test1.world`, 80% of items from `pick_list_2.yaml` for `test2.world` and 75% of items from `pick_list_3.yaml` in `test3.world`.
-9. Congratulations!  Your Done!
-
-# Extra Challenges: Complete the Pick & Place
-7. To create a collision map, publish a point cloud to the `/pr2/3d_map/points` topic and make sure you change the `point_cloud_topic` to `/pr2/3d_map/points` in `sensors.yaml` in the `/pr2_robot/config/` directory. This topic is read by Moveit!, which uses this point cloud input to generate a collision map, allowing the robot to plan its trajectory.  Keep in mind that later when you go to pick up an object, you must first remove it from this point cloud so it is removed from the collision map!
-8. Rotate the robot to generate collision map of table sides. This can be accomplished by publishing joint angle value(in radians) to `/pr2/world_joint_controller/command`
-9. Rotate the robot back to its original state.
-10. Create a ROS Client for the “pick_place_routine” rosservice.  In the required steps above, you already created the messages you need to use this service. Checkout the [PickPlace.srv](https://github.com/udacity/RoboND-Perception-Project/tree/master/pr2_robot/srv) file to find out what arguments you must pass to this service.
-11. If everything was done correctly, when you pass the appropriate messages to the `pick_place_routine` service, the selected arm will perform pick and place operation and display trajectory in the RViz window
-12. Place all the objects from your pick list in their respective dropoff box and you have completed the challenge!
-13. Looking for a bigger challenge?  Load up the `challenge.world` scenario and see if you can get your perception pipeline working there!
 
 For all the step-by-step details on how to complete this project see the [RoboND 3D Perception Project Lesson](https://classroom.udacity.com/nanodegrees/nd209/parts/586e8e81-fc68-4f71-9cab-98ccd4766cfe/modules/e5bfcfbd-3f7d-43fe-8248-0c65d910345a/lessons/e3e5fd8e-2f76-4169-a5bc-5a128d380155/concepts/802deabb-7dbb-46be-bf21-6cb0a39a1961)
 Note: The robot is a bit moody at times and might leave objects on the table or fling them across the room :D
