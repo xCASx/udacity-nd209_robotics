@@ -48,53 +48,58 @@ def send_to_yaml(yaml_filename, dict_list):
 
 # Callback function for your Point Cloud Subscriber
 def pcl_callback(pcl_msg):
+    # CONST
+    VOXEL_LEAF_SIZE                 = 0.005
+    NOISE_THRESHOLD_SCALE_FACTOR    = 0.05
+    NOISE_MEAN_K                    = 3
+    PASS_THROUGH_AXIS_MIN_Z         = 0.5
+    PASS_THROUGH_AXIS_MAX_Z         = 0.8
+    PASS_THROUGH_AXIS_MIN_X         = 0.4
+    PASS_THROUGH_AXIS_MAX_X         = 2.0
+    RANSAC_MAX_DISTANCE             = 0.01
+    CLUSTER_TOLERANCE               = 0.05
+    MIN_CLUSTER_SIZE                = 50
+    MAX_CLUSTER_SIZE                = 10000
+
     # Convert ROS msg to PCL data
     pclMsg = ros_to_pcl(pcl_msg)
 
     # Voxel Grid Downsampling
     vox = pclMsg.make_voxel_grid_filter()
-    LEAF_SIZE = 0.005
-    vox.set_leaf_size(LEAF_SIZE, LEAF_SIZE, LEAF_SIZE)
+    vox.set_leaf_size(VOXEL_LEAF_SIZE, VOXEL_LEAF_SIZE, VOXEL_LEAF_SIZE)
     cloud_filtered = vox.filter()
 
     # Apply statistical outlier filter to get rid of noise
     outlier_filter = cloud_filtered.make_statistical_outlier_filter()
     # Set the number of neighboring points to analyze for any given point
-    outlier_filter.set_mean_k(3)
-    # Set threshold scale factor
-    x = 0.05
+    outlier_filter.set_mean_k(NOISE_MEAN_K)
     # Any point with a mean distance larger than global (mean distance+x*std_dev) will be considered outlier
-    outlier_filter.set_std_dev_mul_thresh(x)
+    outlier_filter.set_std_dev_mul_thresh(NOISE_THRESHOLD_SCALE_FACTOR)
     cloud_filtered = outlier_filter.filter()
 
     # PassThrough Filter (horizontal)
     passthrough = cloud_filtered.make_passthrough_filter()
     filter_axis = 'z'
     passthrough.set_filter_field_name(filter_axis)
-    axis_min = 0.5
-    axis_max = 0.8
-    passthrough.set_filter_limits(axis_min, axis_max)
+    passthrough.set_filter_limits(PASS_THROUGH_AXIS_MIN_Z, PASS_THROUGH_AXIS_MAX_Z)
     cloud_filtered = passthrough.filter()
 
     # PassThrough Filter (vertical)
     passthrough = cloud_filtered.make_passthrough_filter()
     filter_axis = 'x'
     passthrough.set_filter_field_name(filter_axis)
-    axis_min = 0.4
-    axis_max = 2
-    passthrough.set_filter_limits(axis_min, axis_max)
+    passthrough.set_filter_limits(PASS_THROUGH_AXIS_MIN_X, PASS_THROUGH_AXIS_MAX_X)
     cloud_filtered = passthrough.filter()
 
     # RANSAC Plane Segmentation
     seg = cloud_filtered.make_segmenter()
     seg.set_model_type(pcl.SACMODEL_PLANE)
     seg.set_method_type(pcl.SAC_RANSAC)
-    max_distance = 0.01
-    seg.set_distance_threshold(max_distance)
+    seg.set_distance_threshold(RANSAC_MAX_DISTANCE)
     inliers, coefficients = seg.segment()
 
     # Extract inliers and outliers
-    pcl_cloud_table = cloud_filtered.extract(inliers, negative=False)
+    pcl_cloud_table   = cloud_filtered.extract(inliers, negative=False)
     pcl_cloud_objects = cloud_filtered.extract(inliers, negative=True)
 
     # Euclidean Clustering
@@ -105,9 +110,9 @@ def pcl_callback(pcl_msg):
     ec = white_cloud.make_EuclideanClusterExtraction()
     # Set tolerances for distance threshold
     # as well as minimum and maximum cluster size (in points)
-    ec.set_ClusterTolerance(0.05)
-    ec.set_MinClusterSize(50)
-    ec.set_MaxClusterSize(10000)
+    ec.set_ClusterTolerance(CLUSTER_TOLERANCE)
+    ec.set_MinClusterSize(MIN_CLUSTER_SIZE)
+    ec.set_MaxClusterSize(MAX_CLUSTER_SIZE)
     # Search the k-d tree for clusters
     ec.set_SearchMethod(tree)
     # Extract indices for each of the discovered clusters
@@ -141,8 +146,7 @@ def pcl_callback(pcl_msg):
 
     # Classify the clusters! (loop through each detected cluster one at a time)
     detected_objects_labels = []
-    detected_objects_list = []
-
+    detected_objects_list   = []
     for index, pts_list in enumerate(cluster_indices):
         # Grab the points for the cluster from the extracted outliers (cloud_objects)
         pcl_cluster = pcl_cloud_objects.extract(pts_list)
@@ -194,20 +198,21 @@ def pr2_mover(object_list):
     from geometry_msgs.msg import Pose
 
     test_scene_num = Int32()
-    test_scene_num.data = 3
 
     object_name = String()
-    arm_name = String()
+    arm_name    = String()
 
-    pick_pose = Pose()
+    pick_pose  = Pose()
     place_pose = Pose()
 
     # Get/Read parameters
     object_list_param = rospy.get_param('/object_list')
     dropbox_param     = rospy.get_param('/dropbox')
+    test_scene_param  = rospy.get_param('/test_scene')
 
     # Parse parameters into individual variables
-    object_names = []
+    test_scene_num.data = test_scene_param['num']
+    object_names  = []
     object_groups = []
     for object_param in object_list_param:
         object_names.append(object_param['name'])
@@ -275,11 +280,11 @@ if __name__ == '__main__':
     pcl_sub = rospy.Subscriber("/pr2/world/points", pc2.PointCloud2, pcl_callback, queue_size=1)
 
     # Create Publishers
-    object_markers_pub   = rospy.Publisher("/object_markers",   Marker, queue_size=1)
-    detected_objects_pub = rospy.Publisher("/detected_objects", DetectedObjectsArray, queue_size=1)
-    pcl_objects_pub      = rospy.Publisher("/pcl_objects", PointCloud2, queue_size=1)
-    pcl_table_pub        = rospy.Publisher("/pcl_table", PointCloud2, queue_size=1)
-    pcl_cluster_pub      = rospy.Publisher("/pcl_cluster", PointCloud2, queue_size=1)
+    object_markers_pub   = rospy.Publisher("/object_markers",   Marker,                 queue_size=1)
+    detected_objects_pub = rospy.Publisher("/detected_objects", DetectedObjectsArray,   queue_size=1)
+    pcl_objects_pub      = rospy.Publisher("/pcl_objects",      PointCloud2,            queue_size=1)
+    pcl_table_pub        = rospy.Publisher("/pcl_table",        PointCloud2,            queue_size=1)
+    pcl_cluster_pub      = rospy.Publisher("/pcl_cluster",      PointCloud2,            queue_size=1)
 
     # Load Model From disk
     model = pickle.load(open('model.sav', 'rb'))
