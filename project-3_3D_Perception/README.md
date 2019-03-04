@@ -108,6 +108,10 @@ label = encoder.inverse_transform(prediction)[0]
 detected_objects_labels.append(label)
 ```
 
+Here is how clustered point clouds look like after being processed and classified:
+
+![Processing result](./img/clusters.png)
+
 ### Pick and Place
 The list of the detected objects passed then to `pr2_mover` method, which determines next action based on pre-defined ordered list `pr2_robot/config/pick_list_*.yaml` which is configured in `pr2_robot/launch/pick_place_project.launch`
 
@@ -148,11 +152,30 @@ The last part would be either apply pick and place operation based on calculated
 
 ## Further improvements
 
-- model quality could be increased to gain 100% correctness of recognition
-- quality of pick and place actions may be improved by properly calculating collision point cloud by excluding target object from complete point cloud
+- Model quality could be increased to gain 100% correctness of recognition. E.g. a glue bottle in world 3 scenario incorrectly classified as sticky notes due to partial overlapping by a book. To achive better recognition next techniques may be used:
+    - collect more training data samples (doesn't seem ot work well enough, as current model already has 50 samples per object)
+    - try different SVM kernels
+    - use more dense point cloud to pass more data to classifier
+
+- Quality of pick and place actions may be improved. Currently during trajectory calculation algorithm doesn't take into account objects which robot may unintentionally interact with. It may lead to situation when robot pushes some items off the table. This could be avoidede by  calculating collision point cloud. Such cloud should consist of point cloud of each item on the table, except target one, and the table itself.
 
 
 ## Demo
+
+### Screenshots
+
+There are three different "worlds" with different items arrangements available. Below are screenshots with recognition results for each of these worlds.
+
+World #1 (all three objects are properly classified):
+![World #1](./img/world_1.png "World #1")
+
+World #2 (all five objects are properly classified):
+![World #2](./img/world_2.png "World #2")
+
+World #3 (a glue bottle was misclassified as sticky notes):
+![World #3](./img/world_3.png "World #3")
+
+### Video
 
 Demonstration of dynamic object recognition (click to open youtube video):
 
