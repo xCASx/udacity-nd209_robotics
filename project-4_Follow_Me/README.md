@@ -116,9 +116,9 @@ Number of epochs increased 20 => 50, steps per epoch increased 50 => 200
 The resulting score **0.4482**
 
 ### Conclusions
-The initial network architecture was a pretty nice choice. Baseline network consisted of 2 encoder/decoder layers of depth 32/64 and 1x1 convolutional layer in between with depth of 64. Decoder layers contained single separable conv layer each. This network showed resulting score of 0.3060, which was a good starting point, but not enough to beat the goal of 0.4 loss.
+The initial network architecture was a pretty nice choice. Baseline network consisted of 2 encoder/decoder layers of depth 32/64 and 1x1 convolutional layer in between with depth of 64. Decoder layers contained single separable conv layer each. This network showed resulting score of 0.3060, which was a good starting point, but not enough to beat the goal of 0.4 score.
 
-Neither of changes made to the network architecture paid off. Loss values degraded and both learning time and model size increased. The reason may be not the issue with particular network architecture itself, but bad hyperparameters or lack of training data. It's probably worth to increase amount of epochs and steps per epoch to re-evaluate deeper and wider architectures.
+Neither of changes made to the network architecture paid off. Score values degraded and both learning time and model size increased. The reason may be not the issue with particular network architecture itself, but bad hyperparameters or lack of training data. It's probably worth to increase amount of epochs and steps per epoch to re-evaluate deeper and wider architectures.
 
 The batch size change had the biggest impact on model quality. Adjustments of learning rate improved model insignificantly. It means that initial guess was good enough and Adam optimizer works well without additional tuning. The resulting score after these improvements increased to 0.4173.
 
