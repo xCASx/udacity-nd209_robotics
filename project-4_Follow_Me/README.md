@@ -16,7 +16,7 @@ The convolutional networks became explosively popular after success of [AlexNet]
 
 CNN consists of a few convolute layers which end up with a fully connected layer. Shallow convolute layers are able to extract very basic information about image like lines or simple shapes, while deeper layers use information from shallow ones to recognize more complex objects (animals, vehicles, human faces etc).
 
-FCN is a modification of CNN which allows not only say that object is present (or not) on the picture, but also detect where exactly it is. Classic CNN can't provide this information due to limitations of its fully connected layer, which loses spatial information. To overcome this issue FCN uses Upsampling Via Deconvolution. In general it repeats architecture of convolutional layers in opposite order, which preserves spatial data which allows to use it for picture segmentation.
+FCN is a modification of CNN which allows not only say that object is present (or not) on the picture, but also detect where exactly it is. Classic CNN can't provide this information due to limitations of its fully connected layer, which loses spatial information. To overcome this issue FCN uses Upsampling Via Deconvolution. In general it repeats architecture of convolutional layers in opposite order, which preserves spatial data allowing to use it for picture segmentation.
 
 Additional power of convolutional network is that [trained models could be reused](https://medium.com/infosimples/speed-up-your-deep-learning-projects-with-pre-trained-neural-networks-8ab1aba4e3a3) for different tasks. As shallow layers of convolutional networks learn basic features like lines and shapes it doesn't matter what kind of object we want to recognize at later stages, would it be a hot dog, or a vehicle. So weights of shallow layers could be effectively reused for different recognition tasks.
 
@@ -58,7 +58,7 @@ I increased amount of workers, which should improve learning speed on powerful h
 - validation steps = 50
     - used recommended value
 
-The resulting loss **0.3060**
+The resulting score **0.3060**
 
 Pretty far from our goal of 0.4 at least. There is definitely room for improvement!
 
@@ -67,7 +67,7 @@ Batching is a way to deal with lack of memory to load all training data. The mor
 
 The batch size was increased 64 => 128 and it immediately paid off.
 
-The resulting loss **0.4150**
+The resulting score **0.4150**
 
 Wow! A single hyperparameter change impacted model quality drastically and the goal of 0.4 was beaten.
 
@@ -80,14 +80,14 @@ In this network [Adam optimizer](https://keras.io/optimizers/) is used. It is re
 
 The learning rate was increased 0.005 => 0.01, which lead to insignificant improvement.
 
-The resulting loss **0.4173**
+The resulting score **0.4173**
 
 #### Forth iteration: 1x1 convolution layer adjustment
 FCN's 1x1 convolution layers used instead of fully connected layers of classic CNNs help model to gain spatial information. Fully connected layers aren't able to preserve this information. They are able to tell us if object is present on the picture, but can't tell where it exactly is. Deeper 1x1 conv layers potentially able to pass more spatial information (increase the image depth). Let's increase the layer's depth and see how it impact the model quality.
 
 Depth of 1x1 convolution layer increased 64 => 128, the model quality dropped and the change was rolled back.
 
-The resulting loss **0.4087**
+The resulting score **0.4087**
 
 #### Fifth iteration: one more separable conv layer per decoder block
 In this network [Depthwise Separable Convolution Layers](https://towardsdatascience.com/a-basic-introduction-to-separable-convolutions-b99ec3102728) with [Batch Normalization](https://towardsdatascience.com/batch-normalization-in-neural-networks-1ac91516821c) used. Batch normalization responsible for normalizing inputs in hidden layers of network, which deals with fading away activations. Depthwise Separable Convolution Layers analyze separate color channels of image with different conv layers: depthwise and pointwise. They do less multiplications comparing to classic convolution layers, which improves learning speed.
@@ -95,7 +95,7 @@ Let's see how amount of separable conv layers in decoders impact model quality.
 
 One more separable conv layer per decoder block was added. The model quality dropped.
 
-The resulting loss **0.4063**
+The resulting score **0.4063**
 
 Separable Convolution Layers helps to improve speed of learning and in this case there is no gain in using additional layer, as the network is not so big.
 
@@ -104,7 +104,7 @@ Neither deeper 1x1 conv layer, nor additional separable conv layers worked, but 
 
 Depth of second layer of encoders/decoders increased 64 => 128, depth of 1x1 conv layer increased 64 => 512. Result is significant drop of model quality.
 
-The resulting loss **3363**
+The resulting score **0.3363**
 
 Increase in network complexity lead to model quality drop. Either more fine tuning of hyperparameters or more training data required to reveal this architecture power. In any case more shallow network shows decent results and could be trained faster, so let's focus on it.
 
@@ -113,16 +113,16 @@ The third iteration shows the best performance, so let's move forward with this 
 
 Number of epochs increased 20 => 50, steps per epoch increased 50 => 200
 
-The resulting loss **0.4482**
+The resulting score **0.4482**
 
 ### Conclusions
-The initial network architecture was a pretty nice choice. Baseline network consisted of 2 encoder/decoder layers of depth 32/64 and 1x1 convolutional layer in between with depth of 64. Decoder layers contained single separable conv layer each. This network showed resulting loss of 0.3060, which was a good starting point, but not enough to beat the goal of 0.4 loss.
+The initial network architecture was a pretty nice choice. Baseline network consisted of 2 encoder/decoder layers of depth 32/64 and 1x1 convolutional layer in between with depth of 64. Decoder layers contained single separable conv layer each. This network showed resulting score of 0.3060, which was a good starting point, but not enough to beat the goal of 0.4 loss.
 
 Neither of changes made to the network architecture paid off. Loss values degraded and both learning time and model size increased. The reason may be not the issue with particular network architecture itself, but bad hyperparameters or lack of training data. It's probably worth to increase amount of epochs and steps per epoch to re-evaluate deeper and wider architectures.
 
-The batch size change had the biggest impact on model quality. Adjustments of learning rate improved model insignificantly. It means that initial guess was good enough and Adam optimizer works well without additional tuning. The resulting loss after these improvements increased to 0.4173.
+The batch size change had the biggest impact on model quality. Adjustments of learning rate improved model insignificantly. It means that initial guess was good enough and Adam optimizer works well without additional tuning. The resulting score after these improvements increased to 0.4173.
 
-As assumed, amount of epochs and steps per epoch parameters helped to improve the best model further. The resulting loss after these improvements increased to **0.4482**. Here I've decided to stop my experiments.
+As assumed, amount of epochs and steps per epoch parameters helped to improve the best model further. The resulting score after these improvements increased to **0.4482**. Here I've decided to stop my experiments.
 
 Winner model convergence:
 
