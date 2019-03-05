@@ -14,9 +14,29 @@ In this project, you will train a deep neural network to identify and track a ta
 This project uses a kind of [Convolutional Neural Network (CNN)](https://en.wikipedia.org/wiki/Convolutional_neural_network) called [Fully Convoluted Network (FCN)](https://towardsdatascience.com/review-fcn-semantic-segmentation-eb8c9b50d2d1).
 The convolutional networks became explosively popular after success of [AlexNet](https://papers.nips.cc/paper/4824-imagenet-classification-with-deep-convolutional-neural-networks.pdf) in task of image recognition.
 
+Probably the biggest advantage which convolutional networks give us is weigths sharing. It is so important because model trained with shared weights become indefferent to location of objects on images. Weigths sharing achieved by learning on small samples of input data at a time. Like a sliding spotlight reveals objects in darkness piece by piece, so called filter (or kernel) convolving small patches of input data and producing an activation map.
+
+![](./img/ActivationMap.png)
+
 CNN consists of a few convolute layers which end up with a fully connected layer. Shallow convolute layers are able to extract very basic information about image like lines or simple shapes, while deeper layers use information from shallow ones to recognize more complex objects (animals, vehicles, human faces etc).
 
+Example of data learned by first and following layers:
+
+![](./img/FirstLayers.png)
+
+![](./img/SecondLayer.png)
+
+![](./img/ThirdLayer.png)
+
+![](./img/FifthLayer.png)
+
+CNN ends up with fully connected layer (traditional MLP) with resulting Soft Max activation function, which gives probabilities  per each class of classification. These probabilities could be used to gain confidence of object presence.
+
+![](./img/Cover.png)
+
 FCN is a modification of CNN which allows not only say that object is present (or not) on the picture, but also detect where exactly it is. Classic CNN can't provide this information due to limitations of its fully connected layer, which loses spatial information. To overcome this issue FCN uses Upsampling Via Deconvolution. In general it repeats architecture of convolutional layers in opposite order, which preserves spatial data allowing to use it for picture segmentation.
+
+![FCN](./img/FCN.png)
 
 Additional power of convolutional network is that [trained models could be reused](https://medium.com/infosimples/speed-up-your-deep-learning-projects-with-pre-trained-neural-networks-8ab1aba4e3a3) for different tasks. As shallow layers of convolutional networks learn basic features like lines and shapes it doesn't matter what kind of object we want to recognize at later stages, would it be a hot dog, or a vehicle. So weights of shallow layers could be effectively reused for different recognition tasks.
 
@@ -122,7 +142,7 @@ Neither of changes made to the network architecture paid off. Score values degra
 
 The batch size change had the biggest impact on model quality. Adjustments of learning rate improved model insignificantly. It means that initial guess was good enough and Adam optimizer works well without additional tuning. The resulting score after these improvements increased to 0.4173.
 
-As assumed, amount of epochs and steps per epoch parameters helped to improve the best model further. The resulting score after these improvements increased to **0.4482**. Here I've decided to stop my experiments.
+As assumed, amount of epochs and steps per epoch parameters helped to improve the best model further. The resulting score after these improvements increased to **0.4482**. I've decided to stop my experiments here for now.
 
 Winner model convergence:
 
