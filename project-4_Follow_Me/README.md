@@ -140,7 +140,7 @@ Winner model convergence:
 
 ### Demo
 
-TBD
+[![Demo video of working project](https://img.youtube.com/vi/7iFf2zvbFg8/0.jpg)](https://www.youtube.com/watch?v=7iFf2zvbFg8 "Follow Me")
 
 ## Setup Instructions
 **Clone the repository**
