@@ -61,7 +61,7 @@ Tuning was done in *sophisticated brute force* way. Different parameter combinat
 
 Final network architecture:
 
-![](./img/arch.jpg)
+![](./img/arch.png)
 
 ### Network Tuning
 #### First iteration: baseline
