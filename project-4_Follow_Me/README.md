@@ -42,7 +42,7 @@ One important feature of FCN is 1x1 convolutional layer, which is a bridge betwe
 
 ![](./img/1x1convolution.png)
 
-Additional power of convolutional network is that [trained models could be reused](https://medium.com/infosimples/speed-up-your-deep-learning-projects-with-pre-trained-neural-networks-8ab1aba4e3a3) for different tasks. As shallow layers of convolutional networks learn basic features like lines and shapes it doesn't matter what kind of object we want to recognize at later stages, would it be a hot dog, or a vehicle. So weights of shallow layers could be effectively reused for different recognition tasks.
+Additional power of convolutional network is that [trained models could be reused](https://medium.com/infosimples/speed-up-your-deep-learning-projects-with-pre-trained-neural-networks-8ab1aba4e3a3) for different tasks. As shallow layers of convolutional networks learn basic features like lines and shapes it doesn't matter what kind of object we want to recognize at later stages, would it be a hot dog, or a vehicle. So weights of shallow layers could be effectively reused for different recognition tasks. Although recognition of different objects will require presence of appropriate training data.
 
 ### Network parameters
 Main set of tunable parameters:
